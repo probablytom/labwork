@@ -1,3 +1,5 @@
+from numpy import mean
+
 # Determine the Sampling Rate (file samples are 300ms speech)
 #   Note: there are 2400 samples.
 
@@ -25,11 +27,32 @@ def ideal_delay_by_5ms(input_signal):
     return output_signal
 
 
+y[0] = ideal_delay_by_5ms(s)     # 5ms
+y[1] = ideal_delay_by_5ms(y[0])  # 10ms
+y[2] = ideal_delay_by_5ms(y[1])  # 15ms
+
 # Apply the moving average with k1=k2=5, 10, and 15ms
+# Three cases to be aware of, as labelled in the code:
+#   - 1: Moving average is clipped as there's too few measurements to go backward at the beginning of the signal
+#   - 2: Ordinary moving average function
+#   - 3: Moving average is clipped as there's too few measurements to go forward at the end of the signal
+def moving_average(k1, k2, input_signal):
+    output_signal = []
+    #coefficient = 1/(k1 + k2 + 1)  # Shouldn't need this as numpy calculating for us
+    for i in range(0, k1):
+        output_signal[i] = mean(input_signal[0, i])
+    for i in range(k1, len(input_signal) - k2):
+        output_signal[i] = mean(input_signal[i-k1, i+k2])
+    for i in range(len(input_signal) - k2, k2):
+        output_signal[i] = mean(input_signal[i-k2, len(input_signal)])
+    
+    return output_signal
+    
+
 
 # Convolve the signal with a window of length 10ms
 
-# Extract the shirt0term energy signal from the signal in labrotory.dat
+# Extract the short-term energy signal from the signal in labrotory.dat
 
 # Plot the orginal signal, the energy signal, the magnitude signal and the .ZCR signal as a function of time
 
