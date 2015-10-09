@@ -14,8 +14,15 @@ sampling_rate = len(s)/0.3 # 0.3s...
 y = [[], [], []]  # For the ideal delay operators at 5, 10 and 15.
 
 def ideal_delay_by_5ms(input_signal):
+    output_signal = []
     # ideal delay y[n] = s[n-n0]
     n0 = len(input_signal) / (5 * samp_rate)
+    for n in range(0, len(input_signal)):
+        if n < n0:
+            output_signal.append(0)
+        else:
+            output_signal.append(input_signal(n-n0))
+    return output_signal
 
 
 # Apply the moving average with k1=k2=5, 10, and 15ms
