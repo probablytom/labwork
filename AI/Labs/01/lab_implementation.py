@@ -7,23 +7,22 @@ s = []
 
 with open("lab.dat") as labdat:
     for line in labdat.readlines():
-        if line != "\n": s.append(line.rstrip())
+        s.append(line.rstrip())
 
-sampling_rate = len(s)/0.3 # 0.3s...
-
+sample_rate = len(s)/0.3 # 0.3s...
 
 # Apply the ideal delay operator with delay 5ms, 10ms, and 15ms
 y = [[], [], []]  # For the ideal delay operators at 5, 10 and 15.
 
+# ideal delay y[n] = s[n-n0]
 def ideal_delay_by_5ms(input_signal):
     output_signal = []
-    # ideal delay y[n] = s[n-n0]
-    n0 = len(input_signal) / (5 * samp_rate)
+    n0 = sample_rate * 0.005  # how many signals in 5 msecs?
     for n in range(0, len(input_signal)):
         if n < n0:
             output_signal.append(0)
         else:
-            output_signal.append(input_signal(n-n0))
+            output_signal.append(input_signal[int(n-n0)])  # We can int() the indice as n-n0 always an integer
     return output_signal
 
 
@@ -48,7 +47,12 @@ def moving_average(k1, k2, input_signal):
     
     return output_signal
     
+def moving_average_lab(k, input_signal):
+    return moving_average(k, k, input_signal)
 
+m_a = [[], [], []]
+for i in range(0, 3):
+    m_a[i] = moving_average_lab((i+1)*5, s)
 
 # Convolve the signal with a window of length 10ms
 
