@@ -11,6 +11,9 @@ with open("lab.dat") as labdat:
 
 sample_rate = len(s)/0.3 # 0.3s sample length
 
+def time_to_samples(millis):
+    return millis*sample_rate
+
 # Apply the ideal delay operator with delay 5ms, 10ms, and 15ms
 y = [[], [], []]  # For the ideal delay operators at 5, 10 and 15.
 
@@ -51,18 +54,57 @@ def moving_average_lab(k, input_signal):
 
 m_a = [[], [], []]
 for i in range(0, 3):
-    m_a[i] = moving_average_lab((i+1)*5, s)
+    moving_average_window = time_to_samples( (i+1)*5 )
+    m_a[i] = moving_average_lab(moving_average_window, s)
 
-def time_to_samples(millis):
-    return millis*sample_rate
+
 
 # Convolve the signal with a window of length 10ms
 def convolve(input_signal, window=10):
     output_signal = []
-    
+    window = time_to_samples(window)
 
-# Extract the short-term energy signal from the signal in labrotory.dat
+    for i in range(0, window):
+        output_signal[i] = sum(input_signal[0, i])
+    for i in range(window, len(input_signal)):
+        output_signal[i] = sum(input_signal[i-window, i])
 
-# Plot the orginal signal, the energy signal, the magnitude signal and the .ZCR signal as a function of time
+    return output_signal
+
+convolved_signal = convolve(s)
+
+# Extract the short-term energy signal from the signal in laboratory.dat
+
+# Helper function for signs and things
+def sign(n):
+    return n >= 0  # We can do this because Python treats True and False as 1 and 0 respectively.
+
+def sign_difference(a, b):
+    return abs( (sign(a)-sign(b))/2 )
+
+# Helper function for general averaged convolution stuff
+def averaged_convolution(input_signal, modifier_function = lambda x: x, window=30):
+    output_signal = []
+    input_signal = map(modifier_function, input_signal)
+    window = time_to_samples(window)
+
+    for i in range(0, window):
+        output_signal[i] = sum(map(lambda x: x/i, input_signal[0, i]))
+
+    input_signal = map(lambda x: x/window, input_signal)
+
+    for i in range(window, len(input_signal)):
+        output_signal[i] = sum(input_signal[i-window, i])
+
+short_term_energy_signal = averaged_convolution(lambda x: x**2, s)
+magnitude = averaged_convolution(abs, s)
+
+sign_difference_signal = [0]
+for i in range(1, len(s)):
+    sign_difference_signal[i] = sign_difference(s[i], s[i-1])
+
+zcr = averaged_convolution(sign_difference_signal)
+
+# Plot the original signal, the energy signal, the magnitude signal and the .ZCR signal as a function of time
 
 
