@@ -26,7 +26,8 @@ for i in range(1, len(speech_samples) + 1):
 
 # Just as a helper function:
 def time_to_samples(millis):
-    return sample_rate[0] * millis
+    return int(sample_rate[0] * millis / 1000)
+    
 
 def ideal_delay_by_5ms(samples = speech_samples):
     ideal_delays = []
@@ -57,13 +58,6 @@ def moving_average(k1, k2, input_signals = speech_samples):
         outputs.append(output_signal)
     return outputs
 
-# Another couple of helper functions
-def sign(n):
-    return 1 if n >= 0 else 0
-
-def sign_difference(a, b):
-    return abs( (sign(a)-sign(b))/2 )
-
 # A function that averages the convolution of a signal optionally transformed by some input function
 def averaged_convolution(initial_input_signal, window = 30, modifier_function = lambda x: x):
     output_signal = []
@@ -71,26 +65,30 @@ def averaged_convolution(initial_input_signal, window = 30, modifier_function = 
     window = time_to_samples(window)
 
     for i in range(0, window):
-        output_signal.append(sum(map(lambda x: x/i, input_signal[0 : i])))
+        output_signal.append(sum(map(lambda x: x/float(i), input_signal[0 : i])))
 
     input_signal = map(lambda x: x/window, input_signal)
 
     for i in range(window, len(input_signal)):
-        output_signal[i] = sum(input_signal[i-window, i])
+        output_signal.append(sum(input_signal[i-window : i]))
 
     return output_signal
 
 def average_convolutions_of_signals(signals, modifier_function = lambda x: x, window = 30):
-    output_signals = []
-    for input_signal in signals:
-        output_signals.append(averaged_convolution(input_signal, window, modifier_function))
-    return output_signals
+    return [averaged_convolution(signal, window, modifier_function) for signal in signals]
 
 def short_term_energy_signals(signals):
     return average_convolutions_of_signals(signals, lambda x: x**2)
 
 def magnitude_of_signals(signals):
     return average_convolutions_of_signals(signals, abs)
+
+# Another couple of helper functions
+def sign(n):
+    return 1 if n >= 0 else 0
+
+def sign_difference(a, b):
+    return abs( (sign(a)-sign(b))/2 )
 
 def sign_difference_of_signal(signal):
     sign_difference_signal = [0]
@@ -99,7 +97,8 @@ def sign_difference_of_signal(signal):
     return sign_difference_signal
 
 def sign_differences(signals):
-    return [sign_difference_of_signal for signal in signals]
+    out = [sign_difference_of_signal(signal) for signal in signals]
+    return out
 
 def zero_crossing_rates(signals):
     return average_convolutions_of_signals(sign_differences(signals))
