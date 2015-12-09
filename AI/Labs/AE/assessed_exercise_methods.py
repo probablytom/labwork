@@ -10,6 +10,7 @@ def import_input_data():
     global speech_samples
     global silence_samples
     speech_samples = []
+    silence_samples = []
     for i in range(1, 51):
         input_data = []
         filepath = "inputs/speech_"+str(i).zfill(2)+".dat"
@@ -138,6 +139,7 @@ def construct_variance_modifier(mean):
     return variance_modifier
 
 def gaussian_mean(training_set):
+    #print training_set
     training_transposed = zip(training_set[0], training_set[1], training_set[2])
     return [(sum(training_transposed[i]))/float(len(training_set)) for i in range(0, 3)]
 
@@ -151,8 +153,8 @@ def build_training_sets():
     global training_sets_silence
     global speech_samples
     global silence_samples
-    training_sets_speech = feature_sets_of(speech_samples[0:-1])
-    training_sets_silence = feature_sets_of(silence_samples[0:-1])
+    training_sets_speech = feature_sets_of(speech_samples[0:-5])
+    training_sets_silence = feature_sets_of(silence_samples[0:-5])
 
 def sigma_phi(sigma):
     return 1/sqrt(2 * pi)/sigma
@@ -160,7 +162,7 @@ def sigma_phi(sigma):
 # Make a gaussian for a given mean and variance. 
 def construct_gaussian(mean, variance):
     def gaussian(feature_value):
-        return sigma_phi * exp(0-( ((feature_value - mean)**2) / ((2*sigma)**2) ))
+        return sigma_phi(variance) * exp(0-( ((feature_value - mean)**2) / ((2*variance)**2) ))
     return gaussian
 
 def train():
@@ -170,16 +172,14 @@ def train():
     global silence_samples
     global metrics
     
-    build_training_sets()
-    
     speech_mean = gaussian_mean(training_sets_speech)
     speech_variance = gaussian_variance(training_sets_speech)
     silence_mean = gaussian_mean(training_sets_silence)
     silence_variance = gaussian_variance(training_sets_silence)
     
     metrics = []
-    metrics.extend([construct_gaussian(speech_mean[i], speech_variance[i] for i in range(0, 3))])
-    metrics.extend([construct_gaussian(silence_mean[i], silence_variance[i] for i in range(0, 3))])
+    metrics.extend([construct_gaussian(speech_mean[i], speech_variance[i]) for i in range(0, 3)])
+    metrics.extend([construct_gaussian(silence_mean[i], silence_variance[i]) for i in range(0, 3)])
     
     # Metrics now contains the gaussians for speech e, speech m, speech z, silence e, silence m, and silence z in that order. 
 
@@ -192,8 +192,11 @@ def speech_metric_product(signal):
     return product([ metrics[i](signal_metric[i]) for i in range(0, 3) ])
 
 def silence_metric_product(signal):
-    signal_metric = feature_set_of([signal])
+    signal_metric = feature_set_of(signal)
     return product([ metrics[i+3](signal_metric[i]) for i in range(0, 3) ])
 
 def is_speech(signal):
     return speech_metric_product(signal) > silence_metric_product(signal)
+
+def is_silence(signal):
+    return not is_speech(signal)
