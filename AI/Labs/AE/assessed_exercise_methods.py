@@ -1,9 +1,12 @@
 from numpy import mean, log
 
-speech_samples = []
+noise_samples = silence_samples, speech_samples = [], []
+training_sets_speech = []
+training_sets_silence = []
 
 def import_input_data():
     global speech_samples
+    global silence_samples
     speech_samples = []
     for i in range(1, 51):
         input_data = []
@@ -17,12 +20,15 @@ def import_input_data():
         with open(filepath) as data:
             for line in data:
                 input_data.append(int(line.rstrip()))
-        speech_samples.append(input_data)
+        silence_samples.append(input_data)
 
 import_input_data()
 sample_rate = []
 for i in range(1, len(speech_samples) + 1):
     sample_rate.append( int( len(speech_samples[i-1])/0.3 ) )  # Sample is always 0.3 seconds long. 
+for i in range(1, len(silence_samples) + 1):
+    sample_rate.append( int( len(silence_samples[i-1])/0.3 ) )  # Sample is always 0.3 seconds long. 
+
 
 # Just as a helper function:
 def time_to_samples(millis):
@@ -112,9 +118,12 @@ def log_of_signal_values(signal_values):
 def log_of_average_of_signals(signals):
     return log_of_signal_values( average_of_signals(signals) )
 
-# Each of these are arrays of the log of the average of the energy and magnitude and the average of the zero crossing rate for all of the signals, where the signal's index is the number o the signal in the input.
-'''
-e = log_of_average_of_signals( short_term_energy_signals(speech_samples) )
-m = log_of_average_of_signals( magnitude_of_signals(speech_samples) )
-z = average_of_signals( zero_crossing_rates(speech_samples) )
-'''
+def feature_sets_of(signals):
+    z = average_of_signals( zero_crossing_rates(signals) )
+    m = log_of_average_of_signals( magnitude_of_signals(signals) )
+    e = log_of_average_of_signals( short_term_energy_signals(signals) )
+    return zip(e, m, z)
+
+def train():
+    global training_sets_speech
+    global training_sets_silence
