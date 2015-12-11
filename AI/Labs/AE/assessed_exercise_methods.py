@@ -1,4 +1,4 @@
-from numpy import mean, log
+from numpy import mean, log, matrix
 from math import pi, sqrt, exp
 
 noise_samples = silence_samples, speech_samples = [], []
@@ -133,60 +133,12 @@ def feature_set_of(signal):
     z = average_of_signals( zero_crossing_rates([signal]) )[0]
     return [e, m, z]
 
-def construct_variance_modifier(mean):
-    def variance_modifier(feature_value):
-        return (feature_value - mean) # ** 2
-    return variance_modifier
-
-def gaussian_mean(training_set):
-    training_transposed = zip(training_set[0], training_set[1], training_set[2])
-    return [(sum(training_transposed[i]))/float(len(training_set)) for i in range(0, 3)]
-
-def gaussian_variance(training_set):
-    training_mean = gaussian_mean(training_set)
-    training_transposed = zip(training_set[0], training_set[1], training_set[2])
-    return [(sum(map(construct_variance_modifier(training_mean[i]), training_transposed[i] )))/float(len(training_set)) for i in range(0, 3)]
-
-def sigma_phi(sigma):
-    return 1/sqrt(2 * pi)/sigma
-
-# Make a gaussian for a given mean and variance. 
-def construct_gaussian(mean, variance):
-    def gaussian(feature_value):
-        return sigma_phi(variance) * exp(0-( ((feature_value - mean)**2) / (2*(variance)**2) ))
-    return gaussian
-
-def train_gaussian():
-    global training_sets_speech
-    global training_sets_silence
-    global speech_samples
-    global silence_samples
-    global metrics
-    
-    speech_mean = gaussian_mean(training_sets_speech)
-    speech_variance = gaussian_variance(training_sets_speech)
-    silence_mean = gaussian_mean(training_sets_silence)
-    silence_variance = gaussian_variance(training_sets_silence)
-    
-    metrics = []
-    metrics.extend([construct_gaussian(speech_mean[i], speech_variance[i]) for i in range(0, 3)])
-    metrics.extend([construct_gaussian(silence_mean[i], silence_variance[i]) for i in range(0, 3)])
-    
-    # Metrics now contains the gaussians for speech e, speech m, speech z, silence e, silence m, and silence z in that order. 
-
 def spatial_distance(trained_set, set_to_test):
     return sqrt(sum([(trained_set[i] - set_to_test[i])**2 for i in range(0, len(trained_set))]))
 
 def train_euclidean():
-    global training_sets_speech
-    global training_sets_silence
-    global speech_samples
-    global silence_samples
-    global metrics
-    
-    metrics = []
-    
-    # What do?
+    # Ain't naught to do, we done gone got our information already
+    pass
     
 def mean_spatial_distance_speech(test_feature_set):
     global training_sets_speech
@@ -210,13 +162,13 @@ def silence_metric_product(signal):
 
 def train():
     global training_type
-    if training_type == "gaussian": train_gaussian()
+    if training_type == "gaussian": create_gaussian_metrics()
     else                          : train_euclidean()
 
 def is_speech(signal):
     global training_type
-    #signal = feature_set_of(signal)
-    if training_type == "gaussian": return speech_metric_product(signal) > silence_metric_product(signal)
+    if training_type == "gaussian": #return speech_metric_product(signal) > silence_metric_product(signal)
+        return evaluate_speech_gaussian(signal) > evaluate_silence_gaussian(signal)
     else                          : return mean_spatial_distance_speech(signal) < mean_spatial_distance_silence(signal) # euclidian distance metric calculation
 
 def is_silence(signal):
@@ -225,3 +177,39 @@ def is_silence(signal):
 def set_training_type(training_type_to_set):
     global training_type
     training_type = training_type_to_set
+
+def transpose(input_matrix):
+    return zip(*input_matrix)
+
+def run_gaussian(metric_set, feature_value):
+    gaussian_mean = metric_set[0]
+    gaussian_variance = metric_set[1]
+    return 1/sqrt(2 * pi * gaussian_variance) * exp(0-( (feature_value - gaussian_mean)**2 / (2 * (gaussian_variance)) ))
+
+def create_gaussian_metrics():
+    global training_sets_silence
+    global training_sets_speech
+    global metrics
+
+    metrics = []
+    
+    # Speech training
+    for feature_values in transpose(training_sets_speech):
+        gaussian_mean = mean(feature_values)
+        gaussian_variance = mean(map( lambda x: (x-gaussian_mean)**2, feature_values ))
+        metrics.append([gaussian_mean, gaussian_variance])
+    
+    # Silence training
+    for feature_values in transpose(training_sets_silence):
+        gaussian_mean = mean(feature_values)
+        gaussian_variance = mean(map( lambda x: (x-gaussian_mean)**2, feature_values ))
+        metrics.append([gaussian_mean, gaussian_variance])
+
+
+def evaluate_speech_gaussian(signal_features):
+    global metrics
+    return sum([ log( run_gaussian(metrics[i], signal_features[i]) ) for i in range(0, 3) ])
+    
+def evaluate_silence_gaussian(signal_features):
+    global metrics
+    return sum([ log( run_gaussian(metrics[i+3], signal_features[i]) ) for i in range(0, 3) ])
