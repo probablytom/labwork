@@ -5,10 +5,13 @@ noise_samples = silence_samples, speech_samples = [], []
 training_sets_speech = []
 training_sets_silence = []
 metrics = []
+sample_rate = []
+training_type = "gaussian"
 
 def import_input_data():
     global speech_samples
     global silence_samples
+    global sample_rate
     speech_samples = []
     silence_samples = []
     for i in range(1, 51):
@@ -24,13 +27,11 @@ def import_input_data():
             for line in data:
                 input_data.append(int(line.rstrip()))
         silence_samples.append(input_data)
-
-import_input_data()
-sample_rate = []
-for i in range(1, len(speech_samples) + 1):
-    sample_rate.append( int( len(speech_samples[i-1])/0.3 ) )  # Sample is always 0.3 seconds long. 
-for i in range(1, len(silence_samples) + 1):
-    sample_rate.append( int( len(silence_samples[i-1])/0.3 ) )  # Sample is always 0.3 seconds long. 
+    
+    for i in range(1, len(speech_samples) + 1):
+        sample_rate.append( int( len(speech_samples[i-1])/0.3 ) )  # Sample is always 0.3 seconds long. 
+    for i in range(1, len(silence_samples) + 1):
+        sample_rate.append( int( len(silence_samples[i-1])/0.3 ) )  # Sample is always 0.3 seconds long. 
 
 
 # Just as a helper function:
@@ -63,7 +64,7 @@ def moving_average(k1, k2, input_signals = speech_samples):
         for i in range(k1, len(input_signal) - k2):
             output_signal[i] = mean(input_signal[i-k1, i+k2])  # Should this be [i-k1, i]?
         for i in range(len(input_signal)-k2, len(input_signal) + 1):  # Was originally len(input_signal)-k2, k2
-            output_signal[i] = mean(input_signal[i-k2, len(input_signal)])
+            output_signal[i] = mean(input_signal[i-k1, len(input_signal)])
         outputs.append(output_signal)
     return outputs
 
@@ -97,7 +98,7 @@ def sign(n):
     return 1 if n >= 0 else 0
 
 def sign_difference(a, b):
-    return abs( (sign(a)-sign(b))/2 )
+    return abs( (sign(a)-sign(b)) )
 
 def sign_difference_of_signal(signal):
     sign_difference_signal = [0]
@@ -106,11 +107,10 @@ def sign_difference_of_signal(signal):
     return sign_difference_signal
 
 def sign_differences(signals):
-    out = [sign_difference_of_signal(signal) for signal in signals]
-    return out
+    return [sign_difference_of_signal(signal) for signal in signals]
 
 def zero_crossing_rates(signals):
-    return average_convolutions_of_signals(sign_differences(signals))
+    return average_convolutions_of_signals(sign_differences(signals), lambda x: x / float(2))
 
 def average_of_signals(signals):
     return map(mean, signals)
@@ -121,7 +121,7 @@ def log_of_signal_values(signal_values):
 def log_of_average_of_signals(signals):
     return log_of_signal_values( average_of_signals(signals) )
 
-def feature_sets_of(signals):
+def feature_sets_of(signals, silence = False):
     e = log_of_average_of_signals( short_term_energy_signals(signals) )
     m = log_of_average_of_signals( magnitude_of_signals(signals) )
     z = average_of_signals( zero_crossing_rates(signals) )
@@ -135,11 +135,10 @@ def feature_set_of(signal):
 
 def construct_variance_modifier(mean):
     def variance_modifier(feature_value):
-        return (feature_value - mean) * 2
+        return (feature_value - mean) # ** 2
     return variance_modifier
 
 def gaussian_mean(training_set):
-    #print training_set
     training_transposed = zip(training_set[0], training_set[1], training_set[2])
     return [(sum(training_transposed[i]))/float(len(training_set)) for i in range(0, 3)]
 
@@ -148,24 +147,16 @@ def gaussian_variance(training_set):
     training_transposed = zip(training_set[0], training_set[1], training_set[2])
     return [(sum(map(construct_variance_modifier(training_mean[i]), training_transposed[i] )))/float(len(training_set)) for i in range(0, 3)]
 
-def build_training_sets():
-    global training_sets_speech
-    global training_sets_silence
-    global speech_samples
-    global silence_samples
-    training_sets_speech = feature_sets_of(speech_samples[0:-5])
-    training_sets_silence = feature_sets_of(silence_samples[0:-5])
-
 def sigma_phi(sigma):
     return 1/sqrt(2 * pi)/sigma
 
 # Make a gaussian for a given mean and variance. 
 def construct_gaussian(mean, variance):
     def gaussian(feature_value):
-        return sigma_phi(variance) * exp(0-( ((feature_value - mean)**2) / ((2*variance)**2) ))
+        return sigma_phi(variance) * exp(0-( ((feature_value - mean)**2) / (2*(variance)**2) ))
     return gaussian
 
-def train():
+def train_gaussian():
     global training_sets_speech
     global training_sets_silence
     global speech_samples
@@ -183,20 +174,54 @@ def train():
     
     # Metrics now contains the gaussians for speech e, speech m, speech z, silence e, silence m, and silence z in that order. 
 
+def spatial_distance(trained_set, set_to_test):
+    return sqrt(sum([(trained_set[i] - set_to_test[i])**2 for i in range(0, len(trained_set))]))
+
+def train_euclidean():
+    global training_sets_speech
+    global training_sets_silence
+    global speech_samples
+    global silence_samples
+    global metrics
+    
+    metrics = []
+    
+    # What do?
+    
+def mean_spatial_distance_speech(test_feature_set):
+    global training_sets_speech
+    return mean( [ spatial_distance(training_set, test_feature_set) for training_set in training_sets_speech ] )
+
+def mean_spatial_distance_silence(test_feature_set):
+    global training_sets_silence
+    return mean( [ spatial_distance(training_set, test_feature_set) for training_set in training_sets_silence ] )
+
 def product(values):
     if len(values) == 1: return values[0]
     else:                return values[0] * product( values[1:] )
 
+# Discriminant via sum of loglikelihoods
 def speech_metric_product(signal):
-    signal_metric = feature_set_of(signal)
-    return product([ metrics[i](signal_metric[i]) for i in range(0, 3) ])
+    return sum([ log(metrics[i](signal[i])) for i in range(0, 3) ])
 
+# Discriminant via sum of loglikelihoods
 def silence_metric_product(signal):
-    signal_metric = feature_set_of(signal)
-    return product([ metrics[i+3](signal_metric[i]) for i in range(0, 3) ])
+    return sum([ log(metrics[i+3](signal[i])) for i in range(0, 3) ])
+
+def train():
+    global training_type
+    if training_type == "gaussian": train_gaussian()
+    else                          : train_euclidean()
 
 def is_speech(signal):
-    return speech_metric_product(signal) > silence_metric_product(signal)
+    global training_type
+    #signal = feature_set_of(signal)
+    if training_type == "gaussian": return speech_metric_product(signal) > silence_metric_product(signal)
+    else                          : return mean_spatial_distance_speech(signal) < mean_spatial_distance_silence(signal) # euclidian distance metric calculation
 
 def is_silence(signal):
     return not is_speech(signal)
+
+def set_training_type(training_type_to_set):
+    global training_type
+    training_type = training_type_to_set
