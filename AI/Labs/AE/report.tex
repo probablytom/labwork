@@ -1,0 +1,83 @@
+\documentclass{tufte-handout}
+\usepackage[utf8]{inputenc}
+\usepackage{indentfirst}
+
+\title{AI Report}
+\author{Tom Wallis\\Matric. No.: 2025138}
+\date{December 2015}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A report on the Artificial Intelligence assessed coursework, 2015.\\
+The problem given was to, given a set of input files, train and test an artificially intelligent agent to distinguish between sound and silence. \\
+Particularly, the implementation was to collect feature sets from the input data, and characterise the input using these. Following this, the task was set to plot the results into some graph, and utilise Gaussian probability density functions to train the agent using some test set.\\
+The agent was to be tested via k-fold validation, where k=10, and the agent was then to be able to discriminate between silence and speech in snippets of phone calls as provided as input.\\ 
+\end{abstract}
+
+
+\clearpage
+\section{Design}
+\noindent\rule{2cm}{0.4pt}\\
+
+\subsection{The PEAS Framework}\marginnote{The PEAS framework stands for: \begin{itemize}
+\item Performance
+\item Environment
+\item Actuators
+\item Sensors
+\end{itemize}}
+\smallcaps{The PEAS Framework} is often used for discussing the components that an intelligent agent uses to observe, conceptualise, process and act upon its environment. The framework is useful for categorising the elements of the system into units that serve some purpose. \par
+For example, a servo on a intelligent robotic toy might be used to actuate on the toy's environment, where a piezoelectric crystal might be used to detect the toy being placed on the ground and sense its environment. With this sensing of its environment, the toy is able to process its environment and make appropriate decisions as a result. The overall performance of this system is the final element of the PEAS framework.
+\subsection{Application to the Problem}
+\smallcaps{In the case of} the given problem, the agent being designed should have a performance of roughly 95\% accuracy in predicting whether some sound it processes is speech or silence in a phone call. \marginnote{The agent conceptualises its environment, which is sound, as aspects of that sound it can analyse.}\par
+It does this by understanding its environment through three metrics: the zero crossing rate, magnitude, and short-term energy signals of the sound the agent "hears".\marginnote{The agent "hears" its environment, processes what it heard, and actuates on its environment by displaying success metrics to the user in numerical and graphical formats.}\par
+Once the agent has processed its environment, which it senses from its surroundings by reading input files, it actuates on its environment by outputting success metrics it calculates to the user, and by plotting and showing graphs of the sound it "heard". These graphs can be both signals it has heard, and information it has calculated about the signals it has heard.
+
+\clearpage
+\section{Theory}
+\noindent\rule{2cm}{0.4pt}\\
+\subsection{Feature Sets \& Characterisation}
+%\subsubsection{Features} % What features are
+\smallcaps{The intelligent agent} interprets its input via sets of features which it can use to characterise what it has sensed. A feature set is a set of values, where each value corresponds to a well-defined metric regarding the agent's environment. \par
+An agent will collect information regarding its sensors and relate this to the environment it is aware of. So, if it has been made aware of parts of its environment which it wants to make decisions on or potentially actuate on,\marginnote{An Intelligent Agent makes decisions about its environment by parametrise it through \emph{features}, which it stores in \emph{feature sets}.\\Features used by this intelligent agent: \begin{itemize}
+\item Energy
+\item Magnitude
+\item Zero Crossing Rate
+\end{itemize}} it needs to be able to make "well-informed" decisions about its environment. To calculate the chance that a decision is a desirable one to make, the agent needs to parametrise its environment in a way that it can process. \emph{These parameters are the way the agent makes sense of the world around it.}\par
+%\subsubsection{Features for sound signal characterisation} % Features we're using and why
+\smallcaps{When the agent} designed for this assessed exercise was made, the features used to "teach" it about its environment were a signal's \emph{energy}, it's \emph{magnitude}, and it's \emph{zero crossing rate}.\\
+The \emph{energy} of the signal is the mean of the convolution of the signal squared:
+\[E[n] = \sum_{k = -\infty}^{\infty}\frac{x^{2}_i}{N} \cdot w[n - k]\]
+We use the energy of the signal to assert the strength of the signal, as the equation of the energy is equivalent to the area under the square of the wave. Squaring the wave removes the negative sections of the area under the curve, and the total area is found by integrating this.\par 
+\smallcaps{The second} feature being measured by the intelligent agent is \emph{magnitude}. The magnitude of the signal is the distance from 0 of the signal at any point:
+\[M[n] = \sum_{k = -\infty}^{\infty}\frac{abs(x_i)}{N} \cdot w[n - k]\]
+We use the magnitude of the signal to assess the signal's amplitude; that is, how \emph{loud} the signal is at any point. Worth noting is that this can also be implemented as an averaged convolution, but modifying the signal being convolved via an \emph{absolution} rather than \emph{squaring}. The implementation of the intelligent agent uses this to implement both features. When both features are calculated, they calculate the averaged convolution of a signal that is modified by some  \par
+\smallcaps{The third} feature being measured by the intelligent agent is its \emph{zero crossing rate}, also a form of a averaged convolution:
+\[Z[n] = \frac{1}{2N} \sum_{k = -\infty}^{\infty} |sign(s[k]) - sign(s[k-1])| w[n - k]\]
+We use the zero crossing rate as a measure of frequency at any window of time: as the zero crossing rate increases, the wave is moving up and down a greater number of times in a given timeframe, so the frequency of the signal is higher at that point. \\
+\noindent While the zero crossing rate can be calculated via an averaged convolution, modifying the signal by applying a simple function to the signal isn't possible. Therefore, when implementing this feature, the intelligent agent calculates the zero crossing values and collates these into a \emph{zero crossing signal}, \(s'[k] = |sign(s[k]) - sign(s[k-1])|\), which is then convolved like the other two functions are, and is left unmodified by any lambda functions. 
+\subsection{Gaussian Approach} \marginnote{\smallcaps{Univariate Gaussian: }\(p(x) = \frac{1}{\sqrt{2 \pi \sigma}\})}
+\smallcaps{The Univariate Gaussian} probability density function allows us to calculate the likelihood of a value, once a 
+\subsection{Gaussian Probability Densities}
+\subsection{Gaussian Discriminant Functions}
+\subsection{Decision Rule Applied} % max of sum of loglikelihood
+\subsection{An Alternative Euclidean Approach}
+
+\subsection{Comparisons}
+
+\subsection{Improvements to be made}
+
+\clearpage
+\section{Experiments}
+\noindent\rule{2cm}{0.4pt}\\
+\subsection{Experimental Setup}
+
+\subsection{K=10 -Fold Validation}
+
+\subsection{Performance Metrics}
+
+
+
+\end{document}
+

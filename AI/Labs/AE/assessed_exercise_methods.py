@@ -1,4 +1,4 @@
-from numpy import mean, log, matrix
+from numpy import log
 from math import pi, sqrt, exp
 
 noise_samples = silence_samples, speech_samples = [], []
@@ -33,11 +33,9 @@ def import_input_data():
     for i in range(1, len(silence_samples) + 1):
         sample_rate.append( int( len(silence_samples[i-1])/0.3 ) )  # Sample is always 0.3 seconds long. 
 
-
 # Just as a helper function:
 def time_to_samples(millis):
     return int(sample_rate[0] * millis / 1000)
-    
 
 def ideal_delay_by_5ms(samples = speech_samples):
     ideal_delays = []
@@ -92,6 +90,9 @@ def short_term_energy_signals(signals):
 
 def magnitude_of_signals(signals):
     return average_convolutions_of_signals(signals, abs)
+
+def mean(input_list):
+    return sum(input_list)/float(len(input_list))
 
 # Another couple of helper functions
 def sign(n):
