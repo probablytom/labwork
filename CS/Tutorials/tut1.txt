@@ -1,0 +1,1 @@
+Q1: Asymmetric key cryptography would be better. For the message to be decrypted after undergoing symmetric key cryptography, 
